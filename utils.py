@@ -1,30 +1,45 @@
+from typing import Callable, Dict, List, Optional
+
 import torch
 from torch import nn
 from torch.nn import functional as F
-from typing import List, Dict, Optional, Callable
 
 
 class DotProductAttention(nn.Module):
     def __init__(self):
         super().__init__()
-        
+
     def forward(self, pooled_q_seq, q_his, batch_size):
-        return torch.mean(torch.softmax(torch.bmm(pooled_q_seq, q_his.permute(0,2,1)), -1).view(batch_size,-1,1) * q_his,1, keepdim=True)
+        return torch.mean(
+            torch.softmax(torch.bmm(pooled_q_seq, q_his.permute(0, 2, 1)), -1).view(
+                batch_size, -1, 1
+            )
+            * q_his,
+            1,
+            keepdim=True,
+        )
 
 
 class UserDotProductAttention(nn.Module):
     def __init__(self):
         super().__init__()
         self.dp_attn = DotProductAttention()
-        
+
     def forward(self, q_msg, user_features):
-        q_msg = q_msg.view(q_msg.shape[0],6,-1)
+        q_msg = q_msg.view(q_msg.shape[0], 6, -1)
 
         h_reprs = []
 
         for q_repr_idx in range(q_msg.shape[1]):
-            h_reprs.append(self.dp_attn(q_msg[:,q_repr_idx].unsqueeze(1), user_features, user_features.shape[0]))
-        return torch.cat(h_reprs,2)
+            h_reprs.append(
+                self.dp_attn(
+                    q_msg[:, q_repr_idx].unsqueeze(1),
+                    user_features,
+                    user_features.shape[0],
+                )
+            )
+        return torch.cat(h_reprs, 2)
+
 
 class MLP(torch.nn.Sequential):
     """This block implements the multi-layer perceptron (MLP) module.
